@@ -1,0 +1,21 @@
+#Whole process is recommended to be performed using the supercomputer.
+#Genome A and B should be compared here.
+#Whole process takes at least 1 week without any problem.
+#Simple tutorial should be referred here.https://sourceforge.net/p/popoolation2/wiki/Tutorial/
+
+#Install the necessary software to your directory and make them work.
+
+#Check the genome quality by FastQC.
+
+#Filter the genome by Fastp.
+
+#Prepare for ref genome by bwa.
+
+#Alignment the genome to ref by bwa.
+
+#Check the alignment quality by samtools.
+
+#Generate .sync file by samtools.
+
+#Calculate Fst.
+
