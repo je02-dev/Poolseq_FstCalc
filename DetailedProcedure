@@ -1,21 +1,63 @@
 #Whole process is recommended to be performed using the supercomputer.
 #Genome A and B should be compared here.
+#Genome A1&A2, B1&B2 are complementary.
 #Whole process takes at least 1 week without any problem.
 #Simple tutorial should be referred here.https://sourceforge.net/p/popoolation2/wiki/Tutorial/
+#Options are variable. The protocol should be referred.
 
 #Install the necessary software to your directory and make them work.
+fastqc
+fastp
+bwa
+samtools
+popoolation2
 
 #Check the genome quality by FastQC.
+fastqc -o A1.fastq
+fastqc -o A2.fastq
+fastqc -o B1.fastq
+fastqc -o B2.fastq
 
 #Filter the genome by Fastp.
+fastp -i A1.fastq -I A2.fastq -o A1.fastq.gz -O A2.fastq.gz -h reportA.html -j reportA.json -q 15  -u 80 -l 100
+fastp -i B1.fastq -I B2.fastq -o B1.fastq.gz -O B2.fastq.gz -h reportB.html -j reportB.json -q 15  -u 80 -l 100
 
 #Prepare for ref genome by bwa.
+bwa-0.7.12/bwa index -p ref_index ref.fasta
 
 #Alignment the genome to ref by bwa.
+bwa-0.7.12/bwa aln -n 0.01 -l 100 -o 1 -d 12 -e 12 -t 8 ref_index A1.fastq > A1.sai
+bwa-0.7.12/bwa aln -n 0.01 -l 100 -o 1 -d 12 -e 12 -t 8 ref_index A2.fastq > A2.sai
+bwa-0.7.12/bwa sampe ref_index A1.sai A2.sai > A.sam
+
+bwa-0.7.12/bwa aln -n 0.01 -l 100 -o 1 -d 12 -e 12 -t 8 ref_index B1.fastq > B1.sai
+bwa-0.7.12/bwa aln -n 0.01 -l 100 -o 1 -d 12 -e 12 -t 8 ref_index B2.fastq > B2.sai
+bwa-0.7.12/bwa sampe ref_index B1.sai B2.sai > B.sam
+
+#Remove the unnecessary part by samtools.
+samtools-1.10/samtools view -q 20 -bS A.sam -o A.pairs.bam
+samtools-1.10/samtools sort A.pairs.bam -o A.pairs.sorted.bam
+
+samtools-1.10/samtools view -q 20 -bS B.sam -o B.pairs.bam
+samtools-1.10/samtools sort B.pairs.bam -o B.pairs.sorted.bam
 
 #Check the alignment quality by samtools.
+samtools-1.10/samtools index A.pairs.sorted.bam
+samtools-1.10/samtools stats A.pairs.sorted.bam >  A.pairs.sorted.bamstats
+cat  A.pairs.sorted.bamstats
+
+samtools-1.10/samtools index B.pairs.sorted.bam
+samtools-1.10/samtools stats B.pairs.sorted.bam >  B.pairs.sorted.bamstats
+cat  B.pairs.sorted.bamstats
 
 #Generate .sync file by samtools.
+samtools-1.10/samtools mpileup -B A.pairs.sorted.bam B.pairs.sorted.bam > A_B.mpileup
+perl popoolation2-code/mpileup2sync.pl --fastq-type sanger --min-qual 20 --input A_B.mpileup --output A_B.sync
 
 #Calculate Fst.
+perl popoolation2-code/fst-sliding.pl --input A_B.sync --output A_B.fst --min-count 6 --min-coverage 30 --max-coverage 200  --min-covered-fraction 1 --window-size 10000 --step-size 10000 --pool-size 15:14
 
+#Make .fst file available in igv(=integrative genome viewer).
+perl popoolation2-code/export/pwc2igv.pl --input A_B.fst --output A_B.igv
+
+#Install igv in your desktop and upload A.pairs.sorted.bam, A.pairs.sorted.bai, B.pairs.sorted.bam,B.pairs.sorted.bai, A_B.igv.
